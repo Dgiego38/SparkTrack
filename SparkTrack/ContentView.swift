@@ -1,13 +1,8 @@
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct ContentView: View {
-    private let healthStore = HKHealthStore()
-    @State private var hrv: Double = 0
-    @State private var rhr: Double = 0
-    @State private var recoveryScore: Int = 0
-    @State private var isLoading = false // Désactivé pour le test, on va le remettre propre
-    @State private var errorMessage: String?
+    @StateObject private var healthKit = HealthKitManager()
 
     var body: some View {
         ZStack {
@@ -15,7 +10,6 @@ struct ContentView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // En-tête
                     HStack {
                         VStack(alignment: .leading) {
                             Text("SPARKTRACK")
@@ -29,18 +23,17 @@ struct ContentView: View {
                     }
                     .padding(.top, 20)
 
-                    // Carte Score Principal
                     VStack(spacing: 12) {
                         Text("SCORE DE RÉCUPÉRATION")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.gray)
 
-                        Text("\(recoveryScore)%")
+                        Text("—")
                             .font(.system(size: 64, weight: .heavy))
                             .foregroundColor(.green)
 
-                        Text("HealthKit actif et connecté")
+                        Text("Les données Santé ne sont pas encore chargées.")
                             .font(.footnote)
                             .foregroundColor(.gray)
                     }
@@ -53,43 +46,83 @@ struct ContentView: View {
                             .stroke(Color.green.opacity(0.5), lineWidth: 1.5)
                     )
 
-                    if let error = errorMessage {
+                    Button(action: healthKit.requestAccess) {
+                        HStack {
+                            if healthKit.isRequesting {
+                                ProgressView()
+                                    .tint(.black)
+                            }
+                            Text(healthKit.isRequesting ? "Demande en cours…" : "Autoriser l'accès à Santé")
+                        }
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .foregroundColor(.black)
+                        .background(Color.orange)
+                        .cornerRadius(12)
+                    }
+                    .disabled(healthKit.isRequesting)
+
+                    if let status = healthKit.statusMessage {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+
+                    if let error = healthKit.errorMessage {
                         Text(error)
                             .font(.caption)
                             .foregroundColor(.red)
-                            .padding()
                     }
                 }
                 .padding(.horizontal, 20)
             }
         }
-        .onAppear {
-            requestHealthKitAccessSafe()
-        }
     }
+}
 
-    private func requestHealthKitAccessSafe() {
-        // 1. Vérifier si HealthKit est disponible sur l'appareil
+private final class HealthKitManager: ObservableObject {
+    @Published private(set) var isRequesting = false
+    @Published private(set) var statusMessage: String?
+    @Published private(set) var errorMessage: String?
+
+    private var healthStore: HKHealthStore?
+
+    func requestAccess() {
+        guard !isRequesting else { return }
+
         guard HKHealthStore.isHealthDataAvailable() else {
-            self.errorMessage = "HealthKit non supporté sur cet appareil."
+            errorMessage = "HealthKit n'est pas disponible sur cet appareil."
             return
         }
 
-        guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
-              let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else {
+        guard
+            let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
+            let restingHeartRateType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate)
+        else {
+            errorMessage = "Les types de données HealthKit requis ne sont pas disponibles."
             return
         }
 
-        let typesToRead: Set<HKObjectType> = [hrvType, rhrType]
+        errorMessage = nil
+        statusMessage = nil
+        isRequesting = true
 
-        // 2. Demande d'autorisation asynchrone sécurisée
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+        let store = healthStore ?? HKHealthStore()
+        healthStore = store
+        let typesToRead: Set<HKObjectType> = [hrvType, restingHeartRateType]
+
+        store.requestAuthorization(toShare: nil, read: typesToRead) { [weak self] success, error in
             DispatchQueue.main.async {
-                if success {
-                    // Les autorisations ont été traitées par l'utilisateur
-                    self.recoveryScore = 78 // Valeur test en attendant de fetch les vraies samples
+                guard let self else { return }
+                self.isRequesting = false
+
+                if let error {
+                    self.errorMessage = "La demande HealthKit a échoué : \(error.localizedDescription)"
+                } else if success {
+                    self.statusMessage = "Demande traitée. L'autorisation de lecture peut rester refusée par confidentialité."
                 } else {
-                    self.errorMessage = "Accès refusé ou annulé."
+                    self.errorMessage = "La demande d'autorisation HealthKit a échoué."
                 }
             }
         }

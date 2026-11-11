@@ -18,6 +18,3 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.diego.sparktrack
         INFOPLIST_FILE: SparkTrack/Info.plist
-        CODE_SIGNING_ALLOWED: "NO"
-        CODE_SIGNING_REQUIRED: "NO"
-        CODE_SIGN_IDENTITY: ""

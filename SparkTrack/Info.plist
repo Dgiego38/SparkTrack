@@ -17,11 +17,8 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!-- CES DEUX LIGNES SONT OBLIGATOIRES POUR ÉVITER LE CRASH -->
     <key>NSHealthShareUsageDescription</key>
     <string>SparkTrack a besoin d'accéder à vos données de santé (VFC, pouls au repos) pour calculer votre score de récupération.</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>SparkTrack souhaite enregistrer vos données de santé.</string>
 
     <key>UIRequiredDeviceCapabilities</key>
     <array>
