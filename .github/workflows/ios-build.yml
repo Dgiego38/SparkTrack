@@ -1,0 +1,45 @@
+name: Build SparkTrack IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet Xcode (.xcodeproj)
+        run: xcodegen generate
+
+      - name: Compiler l'application sans signature (Ad-Hoc)
+        run: |
+          xcodebuild archive \
+            -project SparkTrack.xcodeproj \
+            -scheme SparkTrack \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/SparkTrack.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Convertir en fichier .ipa pour le sideloading
+        run: |
+          mkdir -p Payload
+          mv build/SparkTrack.xcarchive/Products/Applications/*.app Payload/
+          zip -r SparkTrack.ipa Payload
+          rm -rf Payload
+
+      - name: Sauvegarder l'artefact IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SparkTrack-IPA
+          path: SparkTrack.ipa
