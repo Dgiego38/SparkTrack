@@ -18,3 +18,4 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.diego.sparktrack
         INFOPLIST_FILE: SparkTrack/Info.plist
+        SPARKTRACK_HEALTHKIT_ENABLED: "NO"
