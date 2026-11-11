@@ -9,11 +9,9 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     sources:
-      - SparkTrack
+      - path: SparkTrack
     info:
       path: SparkTrack/Info.plist
-      properties:
-        UILaunchStoryboardName: ""
     entitlements:
       path: SparkTrack/SparkTrack.entitlements
     settings:
