@@ -19,6 +19,11 @@ jobs:
       - name: Générer le projet Xcode (.xcodeproj)
         run: xcodegen generate
 
+      - name: Nettoyer les caches Xcode et DerivedData
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          xcodebuild clean -project SparkTrack.xcodeproj -scheme SparkTrack
+
       - name: Compiler l'application sans signature (Ad-Hoc)
         run: |
           xcodebuild archive \
